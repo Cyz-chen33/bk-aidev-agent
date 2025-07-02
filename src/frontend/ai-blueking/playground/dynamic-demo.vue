@@ -99,7 +99,7 @@
     .replace('{api_name}', process.env.BK_API_GATEWAY_NAME || '')
     .replace(/^(http|https):/, `${window.location.protocol}`);
 
-  const url = `${prefix}/prod/bk_plugin/plugin_api/assistant/`;
+  const url = process.env.BK_API_URL_TMPL;
 
   // 事件日志相关
   const { eventLogs, addLog, clearLogs } = useEventLogger();

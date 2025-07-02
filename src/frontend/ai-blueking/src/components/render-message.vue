@@ -2,6 +2,7 @@
   <li
     ref="messageMainRef"
     :class="[message.role, 'message-main']"
+    v-if="!HIDE_ROLE_LIST.includes(message.role)"
   >
     <div
       v-if="message?.property?.extra?.cite"
@@ -106,7 +107,8 @@
 <script lang="ts" setup>
   import { computed, onMounted, ref, watch, defineEmits, onBeforeUnmount } from 'vue';
 
-  import { SessionContentRole, type ISessionContent, SessionContentStatus } from '@blueking/ai-ui-sdk';
+  import { SessionContentRole, SessionContentStatus } from '@blueking/ai-ui-sdk/enums';
+  import { type ISessionContent } from '@blueking/ai-ui-sdk/types';
   import { Message } from 'bkui-vue';
   import mermaidPlugin from "@agoose77/markdown-it-mermaid";
   import dayjs from 'dayjs';
@@ -119,6 +121,7 @@
   import { usePopup } from '../composables/use-popup-props';
   import { useSelect } from '../composables/use-select-pop';
   import { useTooltip } from '../composables/use-tippy';
+  import { HIDE_ROLE_LIST } from '../config';
   import { t } from '../lang';
   import MarkdownItLinkBlank from '../plugins/markdown-it-link-blank';
   import { createDeleteConfirm, closeAllDeleteConfirms } from '../utils/delete-confirm';
