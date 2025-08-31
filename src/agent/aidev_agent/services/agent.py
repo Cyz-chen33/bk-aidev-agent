@@ -7,6 +7,7 @@ from aidev_agent.config import settings
 from aidev_agent.core.extend.agent.qa import CommonQAAgent
 from aidev_agent.core.extend.models.llm_gateway import ChatModel
 from aidev_agent.enums import AgentBuildType, AgentType
+from aidev_agent.packages.langchain.tools.base import make_mcp_tools
 from aidev_agent.services.chat import ChatCompletionAgent
 from aidev_agent.services.config_manager import AgentConfig, AgentConfigManager
 from aidev_agent.services.pydantic_models import AgentOptions, ChatPrompt
@@ -34,6 +35,7 @@ class AgentInstanceFactory:
         callbacks: List[Any] | None = None,
         resource_manager: AbstractBKAidevResourceManager | None = None,
         auth_headers: Dict[str, str] | None = None,
+        temperature: float = None,
     ):
         """
         初始化Agent工厂实例
@@ -44,6 +46,7 @@ class AgentInstanceFactory:
         :param agent_cls: Agent类
         :param callbacks: 回调函数列表
         :param resource_manager:  bkaidev 资源管理
+        :param temperature: 模型温度
         """
         self.resource_manager = resource_manager or BKAidevApi.get_client()
         self.agent_code = agent_code
@@ -53,6 +56,7 @@ class AgentInstanceFactory:
         self.agent_cls = agent_cls
         self.callbacks = [each for each in callbacks if each] if callbacks else []
         self.auth_headers = auth_headers or None
+        self.temperature = temperature or None
 
     @classmethod
     def build_agent(
@@ -65,6 +69,7 @@ class AgentInstanceFactory:
         agent_cls: type = CommonQAAgent,
         callbacks: List[Any] | None = None,
         resource_manager: AbstractBKAidevResourceManager | None = None,
+        temperature: float | None = None,
     ):
         """
         构建Agent实例
@@ -75,7 +80,8 @@ class AgentInstanceFactory:
         :param session_context_data: 会话上下文数据 (build_type="direct"时使用)
         :param agent_cls: Agent类
         :param callbacks: 回调函数列表
-        :param api_client: API客户端实例
+        :param resource_manager: 资源管理类
+        :param temperature: 模型温度
         :return: 构建好的Agent实例
         """
         # 创建工厂实例
@@ -87,6 +93,7 @@ class AgentInstanceFactory:
             agent_cls=agent_cls,
             callbacks=callbacks,
             resource_manager=resource_manager,
+            temperature=temperature,
         )
 
         # 验证参数
@@ -197,6 +204,9 @@ class AgentInstanceFactory:
             "base_url": settings.LLM_GW_ENDPOINT,
         }
 
+        if self.temperature is not None:
+            kwargs["temperature"] = self.temperature
+
         # Only add auth_headers if it has a value
         if self.auth_headers:
             kwargs["auth_headers"] = self.auth_headers
@@ -220,7 +230,8 @@ class AgentInstanceFactory:
     def build_tools(self, agent_code: str) -> List[Any]:
         """构建工具"""
         config = AgentConfigManager.get_config(agent_code=agent_code, resource_manager=self.resource_manager)
-        return [self.resource_manager.construct_tool(tool_code) for tool_code in config.tool_codes]
+        mcp_tools = make_mcp_tools(config.mcp_server_config)
+        return [self.resource_manager.construct_tool(tool_code) for tool_code in config.tool_codes] + mcp_tools
 
     def get_role_prompt(self, agent_code: str) -> str | None:
         """获取角色提示词"""
